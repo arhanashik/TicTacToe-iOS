@@ -9,7 +9,10 @@ import SwiftUI
 
 struct GameBoard: View {
     
-    @StateObject private var viewModel = GameViewModel()
+    init(mode: GameMode) {
+            _viewModel = StateObject(wrappedValue: GameViewModel(mode: mode))
+    }
+    @StateObject private var viewModel: GameViewModel
     
     var body: some View {
         GeometryReader { geometry in
@@ -27,6 +30,7 @@ struct GameBoard: View {
                 }
                 Spacer()
             }
+            .navigationTitle(Text(viewModel.mode == .singlePlayer ? "Single Player" : "Multiplayer"))
             .disabled(viewModel.isGameBoradDisabled)
             .padding()
             .alert(item: $viewModel.alertItem, content: { alertItem in
@@ -36,7 +40,7 @@ struct GameBoard: View {
                     dismissButton: .default(alertItem.buttonTitle, action: { viewModel.resetGame() })
                 )
             })
-        }
+        }.navigationTitle(Text("Game"))
     }
 }
 
@@ -46,7 +50,7 @@ struct MoveIndicatorBackground: View {
     
     var body: some View {
         Circle()
-            .foregroundColor(.blue)
+            .foregroundColor(.teal)
             .opacity(0.5)
             .frame(width: proxy.size.width/3 - 15,
                    height: proxy.size.width/3 - 15)
@@ -61,5 +65,11 @@ struct MoveIndicator: View {
             .resizable()
             .frame(width: 40, height: 40)
             .foregroundColor(.white)
+    }
+}
+
+struct GameBoard_Previews: PreviewProvider {
+    static var previews: some View {
+        GameBoard(mode: .singlePlayer)
     }
 }

@@ -7,7 +7,20 @@
 
 import SwiftUI
 
-enum Player {
+enum GameMode {
+    case singlePlayer, multiplayer
+}
+
+struct Player: Equatable {
+    let who: WhichPlayer
+    let type: PlayerType
+}
+
+enum WhichPlayer {
+    case player1, player2
+}
+
+enum PlayerType {
     case human, computer
 }
 
@@ -16,6 +29,6 @@ struct Move {
     let boardIndex: Int
     
     var indicator: String {
-        return player == .human ? "xmark" : "circle"
+        return player.who == .player1 ? "xmark" : "circle"
     }
 }

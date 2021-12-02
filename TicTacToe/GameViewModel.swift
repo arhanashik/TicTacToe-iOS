@@ -8,6 +8,20 @@
 import SwiftUI
 
 final class GameViewModel: ObservableObject {
+    
+    init(mode: GameMode? = nil) {
+        self.mode = mode ?? .singlePlayer
+        
+        player1 = Player(who: .player1, type: .human)
+        player2 = Player(who: .player2, type: mode == .singlePlayer ? .computer : .human)
+        nextPlayer = player1
+    }
+    
+    var mode: GameMode
+    var player1: Player
+    var player2: Player
+    var nextPlayer: Player
+    
     var columns: [GridItem] = [
         GridItem(.flexible()),
         GridItem(.flexible()),
@@ -21,11 +35,32 @@ final class GameViewModel: ObservableObject {
     func processPlayerMove(for position: Int) {
         if isSpaceOccupied(in: moves, forIndex: position) { return }
         
-        // process humen move
-        moves[position] = Move(player: .human, boardIndex: position)
+        // mutilplyer mode
+        if(mode == .multiplayer) {
+            moves[position] = Move(player: nextPlayer, boardIndex: position)
+            
+            // check for win
+            if checkWinCondition(for: nextPlayer, in: moves) {
+                alertItem = AlertContext.playerWin(player: nextPlayer.who)
+                return
+            }
+            // check for draw
+            if checkDrawCondition(in: moves) {
+                alertItem = AlertContext.draw
+                return
+            }
+            
+            nextPlayer = nextPlayer == player1 ? player2 : player1
+            return
+        }
+        
+        // single player moode
+        // process player move
+        let player = player1.type == .human ? player1 : player2
+        moves[position] = Move(player: player, boardIndex: position)
         
         // check for win
-        if checkWinCondition(for: .human, in: moves) {
+        if checkWinCondition(for: player, in: moves) {
             alertItem = AlertContext.humanWin
             return
         }
@@ -37,14 +72,16 @@ final class GameViewModel: ObservableObject {
         
         isGameBoradDisabled = true
         
-        // process computer move
+        // process auto move
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
-            let computerMoveIndex = determineComputerMovePosition(in: moves)
-            moves[computerMoveIndex] = Move(player: .computer, boardIndex: computerMoveIndex)
+            let computer = player1.type == .computer ? player1 : player2
+            let player = computer == player1 ? player2 : player1
+            let computerMoveIndex = autoDetermineMovePosition(for: computer, other: player, in: moves)
+            moves[computerMoveIndex] = Move(player: player2, boardIndex: computerMoveIndex)
             isGameBoradDisabled = false
             
             // check for win
-            if checkWinCondition(for: .computer, in: moves) {
+            if checkWinCondition(for: player2, in: moves) {
                 alertItem = AlertContext.computerWin
                 return
             }
@@ -71,9 +108,9 @@ final class GameViewModel: ObservableObject {
     // If AI can't win, then block
     // If AI can't block, then take middle square
     // If Ai can't take middle square, take random available square
-    func determineComputerMovePosition(in moves: [Move?]) -> Int {
+    func autoDetermineMovePosition(for player1: Player, other Player2: Player, in moves: [Move?]) -> Int {
         // If AI can win, then win
-        let computerMoves = moves.compactMap { $0 }.filter { $0.player == .computer }
+        let computerMoves = moves.compactMap { $0 }.filter { $0.player == player1 }
         let computerPositions = Set(computerMoves.map { $0.boardIndex })
         
         for patter in winPatters {
@@ -85,7 +122,7 @@ final class GameViewModel: ObservableObject {
         }
         
         // If AI can't win, then block
-        let humanMoves = moves.compactMap { $0 }.filter { $0.player == .human }
+        let humanMoves = moves.compactMap { $0 }.filter { $0.player == Player2 }
         let humanPositions = Set(humanMoves.map { $0.boardIndex })
         for patter in winPatters {
             let winPositions = patter.subtracting(humanPositions)
